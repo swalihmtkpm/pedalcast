@@ -263,6 +263,14 @@ function AdminPage() {
               <Radio className="h-3.5 w-3.5" /> LIVE
             </div>
           )}
+          <button
+            onClick={flipCamera}
+            className="absolute right-4 top-4 inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-black/60 px-3 py-1.5 text-xs font-medium text-white backdrop-blur hover:bg-black/80"
+            title="Switch between rear and front camera"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            {facing === "environment" ? "Rear" : "Front (Selfie)"}
+          </button>
         </div>
 
         {/* Map */}
