@@ -317,6 +317,47 @@ function AdminPage() {
           {error}
         </p>
       )}
+
+      {/* Viewer messages */}
+      <section className="mt-8 rounded-2xl border border-border bg-card/70 p-5">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="display flex items-center gap-2 text-xl">
+            <MessageCircle className="h-5 w-5 text-primary" /> Viewer messages
+          </h2>
+          {messages.length > 0 && (
+            <button
+              onClick={() => setMessages([])}
+              className="text-xs text-muted-foreground hover:text-foreground"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+        {messages.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            No messages yet. Viewers can chat from the live page.
+          </p>
+        ) : (
+          <ul className="max-h-80 space-y-2 overflow-y-auto pr-1">
+            {[...messages].reverse().map((m) => (
+              <li
+                key={m.id}
+                className="rounded-lg border border-border bg-background/60 px-3 py-2"
+              >
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="font-mono text-xs text-primary">
+                    viewer·{m.from}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">
+                    {new Date(m.ts).toLocaleTimeString()}
+                  </span>
+                </div>
+                <p className="mt-1 break-words text-sm">{m.text}</p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </main>
   );
 }
