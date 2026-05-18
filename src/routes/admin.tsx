@@ -8,18 +8,24 @@ import {
 } from "@/lib/pedalcast.functions";
 import { loadSession, saveSession, usePedalSession } from "@/lib/usePedalSession";
 import { startAdminBroadcast } from "@/lib/webrtcSignaling";
+import { joinAsAdmin, playChime, type ChatMessage } from "@/lib/pedalRoom";
 import { LiveMap } from "@/components/LiveMap";
 import {
   Bike,
   CameraOff,
+  Eye,
   Gauge,
   LogOut,
+  MessageCircle,
   Mic,
   Radio,
+  RefreshCw,
   Settings2,
   Square,
   Video,
 } from "lucide-react";
+
+type FacingMode = "environment" | "user";
 
 export const Route = createFileRoute("/admin")({
   component: AdminPage,
