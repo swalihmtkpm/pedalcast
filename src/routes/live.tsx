@@ -3,8 +3,9 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { loadSession, saveSession } from "@/lib/usePedalSession";
 import { startViewer } from "@/lib/webrtcSignaling";
+import { joinAsViewer } from "@/lib/pedalRoom";
 import { LiveMap } from "@/components/LiveMap";
-import { Bike, LogOut, Radio } from "lucide-react";
+import { Bike, LogOut, Radio, Send } from "lucide-react";
 
 export const Route = createFileRoute("/live")({
   component: ViewerPage,
