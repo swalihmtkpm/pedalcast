@@ -191,6 +191,49 @@ function ViewerPage() {
           }
         />
       </div>
+
+      {/* Chat with the rider */}
+      <section className="mt-8 rounded-2xl border border-border bg-card/70 p-5">
+        <h2 className="display text-xl">Send a message to the rider</h2>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Messages chime on the rider's device the moment they arrive.
+        </p>
+        <form onSubmit={sendMessage} className="mt-4 flex gap-2">
+          <input
+            type="text"
+            value={chatInput}
+            maxLength={500}
+            placeholder="Cheer them on…"
+            onChange={(e) => setChatInput(e.target.value)}
+            className="flex-1 rounded-lg border border-border bg-background px-3 py-2 outline-none focus:border-primary"
+          />
+          <button
+            type="submit"
+            disabled={sending || !chatInput.trim()}
+            className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+          >
+            <Send className="h-4 w-4" /> Send
+          </button>
+        </form>
+        {sentLog.length > 0 && (
+          <ul className="mt-4 space-y-2">
+            {[...sentLog].reverse().map((m) => (
+              <li
+                key={m.id}
+                className="rounded-lg border border-border bg-background/60 px-3 py-2 text-sm"
+              >
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="text-xs text-muted-foreground">You</span>
+                  <span className="text-[10px] text-muted-foreground">
+                    {new Date(m.ts).toLocaleTimeString()}
+                  </span>
+                </div>
+                <p className="mt-1 break-words">{m.text}</p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </main>
   );
 }
