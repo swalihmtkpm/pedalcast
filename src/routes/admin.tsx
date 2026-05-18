@@ -98,7 +98,7 @@ function AdminPage() {
     setError(null);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment", width: { ideal: 1280 } },
+        video: { facingMode: facing, width: { ideal: 1280 } },
         audio: true,
       });
       streamRef.current = stream;
