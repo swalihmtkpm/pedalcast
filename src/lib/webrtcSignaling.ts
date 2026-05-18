@@ -20,20 +20,20 @@ function getChannel(): RealtimeChannel {
 }
 
 // ADMIN: publishes a MediaStream to any viewer who joins.
-export function startAdminBroadcast(stream: MediaStream) {
+export function startAdminBroadcast(initialStream: MediaStream) {
   const channel = getChannel();
   const peers = new Map<string, RTCPeerConnection>();
+  let currentStream = initialStream;
 
   const send = (payload: SignalMsg) =>
     channel.send({ type: "broadcast", event: "sig", payload });
 
   async function handleViewerJoin(viewerId: string) {
-    // Close existing if reconnecting
     peers.get(viewerId)?.close();
     const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
     peers.set(viewerId, pc);
 
-    stream.getTracks().forEach((t) => pc.addTrack(t, stream));
+    currentStream.getTracks().forEach((t) => pc.addTrack(t, currentStream));
 
     pc.onicecandidate = (e) => {
       if (e.candidate) {
@@ -73,6 +73,14 @@ export function startAdminBroadcast(stream: MediaStream) {
       peers.forEach((p) => p.close());
       peers.clear();
       supabase.removeChannel(channel);
+    },
+    replaceVideoTrack(newStream: MediaStream) {
+      currentStream = newStream;
+      const videoTrack = newStream.getVideoTracks()[0];
+      peers.forEach((pc) => {
+        const sender = pc.getSenders().find((s) => s.track?.kind === "video");
+        if (sender && videoTrack) void sender.replaceTrack(videoTrack);
+      });
     },
   };
 }

@@ -8,18 +8,24 @@ import {
 } from "@/lib/pedalcast.functions";
 import { loadSession, saveSession, usePedalSession } from "@/lib/usePedalSession";
 import { startAdminBroadcast } from "@/lib/webrtcSignaling";
+import { joinAsAdmin, playChime, type ChatMessage } from "@/lib/pedalRoom";
 import { LiveMap } from "@/components/LiveMap";
 import {
   Bike,
   CameraOff,
+  Eye,
   Gauge,
   LogOut,
+  MessageCircle,
   Mic,
   Radio,
+  RefreshCw,
   Settings2,
   Square,
   Video,
 } from "lucide-react";
+
+type FacingMode = "environment" | "user";
 
 export const Route = createFileRoute("/admin")({
   component: AdminPage,
@@ -45,17 +51,40 @@ function AdminPage() {
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
+  const [facing, setFacing] = useState<FacingMode>("environment");
+  const [viewerCount, setViewerCount] = useState(0);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
 
   const streamRef = useRef<MediaStream | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const broadcastRef = useRef<{ stop: () => void } | null>(null);
+  const broadcastRef = useRef<ReturnType<typeof startAdminBroadcast> | null>(null);
   const watchIdRef = useRef<number | null>(null);
   const lastPointRef = useRef<{ lat: number; lng: number } | null>(null);
+  const roomRef = useRef<{ stop: () => void } | null>(null);
+  const seenMsgRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     const s = loadSession();
     if (!s || s.role !== "admin") navigate({ to: "/" });
   }, [navigate]);
+
+  // Presence + chat room (always-on while admin is on this page)
+  useEffect(() => {
+    const room = joinAsAdmin({
+      onViewerCount: setViewerCount,
+      onMessage: (msg) => {
+        if (seenMsgRef.current.has(msg.id)) return;
+        seenMsgRef.current.add(msg.id);
+        setMessages((m) => [...m.slice(-49), msg]);
+        playChime();
+      },
+    });
+    roomRef.current = room;
+    return () => {
+      room.stop();
+      roomRef.current = null;
+    };
+  }, []);
 
   // tick elapsed
   useEffect(() => {
@@ -69,7 +98,7 @@ function AdminPage() {
     setError(null);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment", width: { ideal: 1280 } },
+        video: { facingMode: facing, width: { ideal: 1280 } },
         audio: true,
       });
       streamRef.current = stream;
@@ -142,6 +171,29 @@ function AdminPage() {
     }
   }
 
+  async function flipCamera() {
+    const next: FacingMode = facing === "environment" ? "user" : "environment";
+    setFacing(next);
+    if (!live || !streamRef.current) return;
+    try {
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: next, width: { ideal: 1280 } },
+        audio: false,
+      });
+      // Stop old video tracks, keep audio from original stream
+      streamRef.current.getVideoTracks().forEach((t) => t.stop());
+      const newVideoTrack = newStream.getVideoTracks()[0];
+      // Build a composite stream for the local preview + broadcast
+      const audioTracks = streamRef.current.getAudioTracks();
+      const composite = new MediaStream([newVideoTrack, ...audioTracks]);
+      streamRef.current = composite;
+      if (videoRef.current) videoRef.current.srcObject = composite;
+      broadcastRef.current?.replaceVideoTrack(composite);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to switch camera");
+    }
+  }
+
   useEffect(() => () => { void stop(); /* on unmount */ // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -163,6 +215,14 @@ function AdminPage() {
           <span className="display text-xl">PEDALCAST · ADMIN</span>
         </Link>
         <div className="flex items-center gap-2">
+          <span
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card/60 px-3 py-2 text-sm"
+            title="Viewers watching live"
+          >
+            <Eye className="h-4 w-4 text-primary" />
+            <span className="font-mono">{viewerCount}</span>
+            <span className="text-muted-foreground">watching</span>
+          </span>
           <button
             onClick={() => setShowSettings((v) => !v)}
             className="rounded-lg border border-border px-3 py-2 text-sm hover:bg-secondary"
@@ -203,6 +263,14 @@ function AdminPage() {
               <Radio className="h-3.5 w-3.5" /> LIVE
             </div>
           )}
+          <button
+            onClick={flipCamera}
+            className="absolute right-4 top-4 inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-black/60 px-3 py-1.5 text-xs font-medium text-white backdrop-blur hover:bg-black/80"
+            title="Switch between rear and front camera"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            {facing === "environment" ? "Rear" : "Front (Selfie)"}
+          </button>
         </div>
 
         {/* Map */}
@@ -249,6 +317,47 @@ function AdminPage() {
           {error}
         </p>
       )}
+
+      {/* Viewer messages */}
+      <section className="mt-8 rounded-2xl border border-border bg-card/70 p-5">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="display flex items-center gap-2 text-xl">
+            <MessageCircle className="h-5 w-5 text-primary" /> Viewer messages
+          </h2>
+          {messages.length > 0 && (
+            <button
+              onClick={() => setMessages([])}
+              className="text-xs text-muted-foreground hover:text-foreground"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+        {messages.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            No messages yet. Viewers can chat from the live page.
+          </p>
+        ) : (
+          <ul className="max-h-80 space-y-2 overflow-y-auto pr-1">
+            {[...messages].reverse().map((m) => (
+              <li
+                key={m.id}
+                className="rounded-lg border border-border bg-background/60 px-3 py-2"
+              >
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="font-mono text-xs text-primary">
+                    viewer·{m.from}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">
+                    {new Date(m.ts).toLocaleTimeString()}
+                  </span>
+                </div>
+                <p className="mt-1 break-words text-sm">{m.text}</p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </main>
   );
 }
