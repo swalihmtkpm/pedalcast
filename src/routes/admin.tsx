@@ -51,12 +51,17 @@ function AdminPage() {
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
+  const [facing, setFacing] = useState<FacingMode>("environment");
+  const [viewerCount, setViewerCount] = useState(0);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
 
   const streamRef = useRef<MediaStream | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const broadcastRef = useRef<{ stop: () => void } | null>(null);
+  const broadcastRef = useRef<ReturnType<typeof startAdminBroadcast> | null>(null);
   const watchIdRef = useRef<number | null>(null);
   const lastPointRef = useRef<{ lat: number; lng: number } | null>(null);
+  const roomRef = useRef<{ stop: () => void } | null>(null);
+  const seenMsgRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     const s = loadSession();
