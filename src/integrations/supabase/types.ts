@@ -14,7 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      app_settings: {
+        Row: {
+          admin_password: string
+          id: number
+          updated_at: string
+          user_password: string
+        }
+        Insert: {
+          admin_password: string
+          id?: number
+          updated_at?: string
+          user_password: string
+        }
+        Update: {
+          admin_password?: string
+          id?: number
+          updated_at?: string
+          user_password?: string
+        }
+        Relationships: []
+      }
+      live_session: {
+        Row: {
+          accuracy: number | null
+          id: number
+          is_live: boolean
+          lat: number | null
+          lng: number | null
+          speed: number | null
+          started_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          accuracy?: number | null
+          id?: number
+          is_live?: boolean
+          lat?: number | null
+          lng?: number | null
+          speed?: number | null
+          started_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accuracy?: number | null
+          id?: number
+          is_live?: boolean
+          lat?: number | null
+          lng?: number | null
+          speed?: number | null
+          started_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
