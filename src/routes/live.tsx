@@ -24,9 +24,39 @@ function ViewerPage() {
   const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement>(null);
   const viewerRef = useRef<{ stop: () => void; requestRejoin: () => void } | null>(null);
+  const roomRef = useRef<ReturnType<typeof joinAsViewer> | null>(null);
   const [hasStream, setHasStream] = useState(false);
   const [trail, setTrail] = useState<Array<[number, number]>>([]);
   const [row, setRow] = useState<LiveRow | null>(null);
+  const [chatInput, setChatInput] = useState("");
+  const [sentLog, setSentLog] = useState<Array<{ id: string; text: string; ts: number }>>([]);
+  const [sending, setSending] = useState(false);
+
+  useEffect(() => {
+    const room = joinAsViewer();
+    roomRef.current = room;
+    return () => {
+      room.stop();
+      roomRef.current = null;
+    };
+  }, []);
+
+  async function sendMessage(e: React.FormEvent) {
+    e.preventDefault();
+    const text = chatInput.trim();
+    if (!text || !roomRef.current) return;
+    setSending(true);
+    try {
+      await roomRef.current.sendChat(text);
+      setSentLog((s) => [
+        ...s.slice(-19),
+        { id: crypto.randomUUID(), text, ts: Date.now() },
+      ]);
+      setChatInput("");
+    } finally {
+      setSending(false);
+    }
+  }
 
   useEffect(() => {
     const s = loadSession();
