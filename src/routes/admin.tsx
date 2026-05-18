@@ -68,6 +68,24 @@ function AdminPage() {
     if (!s || s.role !== "admin") navigate({ to: "/" });
   }, [navigate]);
 
+  // Presence + chat room (always-on while admin is on this page)
+  useEffect(() => {
+    const room = joinAsAdmin({
+      onViewerCount: setViewerCount,
+      onMessage: (msg) => {
+        if (seenMsgRef.current.has(msg.id)) return;
+        seenMsgRef.current.add(msg.id);
+        setMessages((m) => [...m.slice(-49), msg]);
+        playChime();
+      },
+    });
+    roomRef.current = room;
+    return () => {
+      room.stop();
+      roomRef.current = null;
+    };
+  }, []);
+
   // tick elapsed
   useEffect(() => {
     if (!startedAt) return;
