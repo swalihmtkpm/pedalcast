@@ -171,6 +171,29 @@ function AdminPage() {
     }
   }
 
+  async function flipCamera() {
+    const next: FacingMode = facing === "environment" ? "user" : "environment";
+    setFacing(next);
+    if (!live || !streamRef.current) return;
+    try {
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: next, width: { ideal: 1280 } },
+        audio: false,
+      });
+      // Stop old video tracks, keep audio from original stream
+      streamRef.current.getVideoTracks().forEach((t) => t.stop());
+      const newVideoTrack = newStream.getVideoTracks()[0];
+      // Build a composite stream for the local preview + broadcast
+      const audioTracks = streamRef.current.getAudioTracks();
+      const composite = new MediaStream([newVideoTrack, ...audioTracks]);
+      streamRef.current = composite;
+      if (videoRef.current) videoRef.current.srcObject = composite;
+      broadcastRef.current?.replaceVideoTrack(composite);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to switch camera");
+    }
+  }
+
   useEffect(() => () => { void stop(); /* on unmount */ // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
