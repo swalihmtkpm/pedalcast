@@ -60,15 +60,13 @@ export const setBroadcastState = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const s = await getSettings();
     if (data.password !== s.admin_password) throw new Error("Unauthorized");
-    const patch: Record<string, unknown> = {
+    const patch = {
       is_live: data.isLive,
       updated_at: new Date().toISOString(),
+      ...(data.isLive
+        ? { started_at: new Date().toISOString() }
+        : { lat: null, lng: null, speed: null }),
     };
-    if (data.isLive) patch.started_at = new Date().toISOString();
-    else {
-      patch.lat = null;
-      patch.lng = null;
-    }
     const { error } = await supabaseAdmin.from("live_session").update(patch).eq("id", 1);
     if (error) throw new Error(error.message);
     return { ok: true };
