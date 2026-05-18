@@ -215,6 +215,14 @@ function AdminPage() {
           <span className="display text-xl">PEDALCAST · ADMIN</span>
         </Link>
         <div className="flex items-center gap-2">
+          <span
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card/60 px-3 py-2 text-sm"
+            title="Viewers watching live"
+          >
+            <Eye className="h-4 w-4 text-primary" />
+            <span className="font-mono">{viewerCount}</span>
+            <span className="text-muted-foreground">watching</span>
+          </span>
           <button
             onClick={() => setShowSettings((v) => !v)}
             className="rounded-lg border border-border px-3 py-2 text-sm hover:bg-secondary"
