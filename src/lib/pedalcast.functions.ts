@@ -89,7 +89,10 @@ export const pushLocation = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const s = await getSettings();
     if (data.password !== s.admin_password) throw new Error("Unauthorized");
-    const patch: Record<string, unknown> = {
+    const patch: {
+      lat: number; lng: number; accuracy: number | null; speed: number | null;
+      updated_at: string; distance_km?: number; place_name?: string;
+    } = {
       lat: data.lat,
       lng: data.lng,
       accuracy: data.accuracy ?? null,
@@ -191,7 +194,7 @@ export const updateRecording = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const s = await getSettings();
     if (data.password !== s.admin_password) throw new Error("Unauthorized");
-    const patch: Record<string, unknown> = {};
+    const patch: { title?: string; is_public?: boolean } = {};
     if (data.title !== undefined) patch.title = data.title;
     if (data.isPublic !== undefined) patch.is_public = data.isPublic;
     if (Object.keys(patch).length === 0) throw new Error("Nothing to update");
