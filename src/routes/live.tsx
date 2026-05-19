@@ -5,7 +5,7 @@ import { loadSession, saveSession } from "@/lib/usePedalSession";
 import { startViewer } from "@/lib/webrtcSignaling";
 import { joinAsViewer } from "@/lib/pedalRoom";
 import { LiveMap } from "@/components/LiveMap";
-import { Bike, LogOut, Radio, Send } from "lucide-react";
+import { Bike, LogOut, MapPin, Radio, Send, Video } from "lucide-react";
 
 export const Route = createFileRoute("/live")({
   component: ViewerPage,
@@ -18,6 +18,17 @@ type LiveRow = {
   lng: number | null;
   speed: number | null;
   started_at: string | null;
+  distance_km: number | null;
+  place_name: string | null;
+};
+
+type PublicRecording = {
+  id: string;
+  title: string;
+  storage_path: string;
+  duration_seconds: number;
+  distance_km: number;
+  created_at: string;
 };
 
 function ViewerPage() {
@@ -32,6 +43,9 @@ function ViewerPage() {
   const [sentLog, setSentLog] = useState<Array<{ id: string; text: string; ts: number }>>([]);
   const [sending, setSending] = useState(false);
 
+  const [recordings, setRecordings] = useState<PublicRecording[]>([]);
+  const bucketBase = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/recordings/`;
+
   useEffect(() => {
     const room = joinAsViewer();
     roomRef.current = room;
@@ -39,6 +53,26 @@ function ViewerPage() {
       room.stop();
       roomRef.current = null;
     };
+  }, []);
+
+  // Load public recordings
+  useEffect(() => {
+    let alive = true;
+    const load = async () => {
+      const { data } = await supabase
+        .from("recordings")
+        .select("id,title,storage_path,duration_seconds,distance_km,created_at")
+        .eq("is_public", true)
+        .order("created_at", { ascending: false })
+        .limit(30);
+      if (alive && data) setRecordings(data as PublicRecording[]);
+    };
+    void load();
+    const ch = supabase
+      .channel("recordings_changes")
+      .on("postgres_changes", { event: "*", schema: "public", table: "recordings" }, () => void load())
+      .subscribe();
+    return () => { alive = false; supabase.removeChannel(ch); };
   }, []);
 
   async function sendMessage(e: React.FormEvent) {
@@ -68,7 +102,7 @@ function ViewerPage() {
     let mounted = true;
     supabase
       .from("live_session")
-      .select("is_live,lat,lng,speed,started_at")
+      .select("is_live,lat,lng,speed,started_at,distance_km,place_name")
       .eq("id", 1)
       .single()
       .then(({ data }) => {
@@ -172,6 +206,20 @@ function ViewerPage() {
               <Radio className="h-3.5 w-3.5" /> LIVE
             </div>
           )}
+          {row?.is_live && (row.place_name || (row.distance_km ?? 0) > 0) && (
+            <div className="pointer-events-none absolute bottom-3 left-3 right-3 flex flex-wrap items-end justify-between gap-2">
+              {row.place_name && (
+                <div className="inline-flex max-w-[70%] items-center gap-1.5 rounded-lg bg-black/60 px-3 py-1.5 text-sm font-medium text-white backdrop-blur">
+                  <MapPin className="h-4 w-4 text-primary" />
+                  <span className="truncate">{row.place_name}</span>
+                </div>
+              )}
+              <div className="inline-flex items-center gap-1.5 rounded-lg bg-black/60 px-3 py-1.5 text-sm font-semibold text-white backdrop-blur">
+                <Bike className="h-4 w-4 text-primary" />
+                <span className="font-mono">{(row.distance_km ?? 0).toFixed(2)} km</span>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="aspect-video lg:aspect-auto">
@@ -179,17 +227,11 @@ function ViewerPage() {
         </div>
       </div>
 
-      <div className="mt-5 grid gap-5 md:grid-cols-3">
+      <div className="mt-5 grid gap-5 md:grid-cols-4">
         <Stat label="Status" value={row?.is_live ? "On air" : "Off air"} />
+        <Stat label="Distance" value={`${(row?.distance_km ?? 0).toFixed(2)} km`} />
         <Stat label="Speed" value={`${speedKmh} km/h`} />
-        <Stat
-          label="Position"
-          value={
-            row?.lat != null && row.lng != null
-              ? `${row.lat.toFixed(4)}, ${row.lng.toFixed(4)}`
-              : "—"
-          }
-        />
+        <Stat label="Place" value={row?.place_name ?? "—"} />
       </div>
 
       {/* Chat with the rider */}
@@ -229,6 +271,35 @@ function ViewerPage() {
                   </span>
                 </div>
                 <p className="mt-1 break-words">{m.text}</p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {/* Past rides */}
+      <section className="mt-8 rounded-2xl border border-border bg-card/70 p-5">
+        <h2 className="display flex items-center gap-2 text-xl">
+          <Video className="h-5 w-5 text-primary" /> Past rides
+        </h2>
+        {recordings.length === 0 ? (
+          <p className="mt-2 text-sm text-muted-foreground">No saved rides yet.</p>
+        ) : (
+          <ul className="mt-4 grid gap-4 sm:grid-cols-2">
+            {recordings.map((r) => (
+              <li key={r.id} className="overflow-hidden rounded-xl border border-border bg-background/60">
+                <video
+                  src={`${bucketBase}${r.storage_path}`}
+                  controls
+                  preload="metadata"
+                  className="aspect-video w-full bg-black"
+                />
+                <div className="p-3">
+                  <div className="truncate font-semibold">{r.title}</div>
+                  <div className="mt-0.5 text-xs text-muted-foreground">
+                    {new Date(r.created_at).toLocaleString()} · {r.distance_km.toFixed(2)} km
+                  </div>
+                </div>
               </li>
             ))}
           </ul>
