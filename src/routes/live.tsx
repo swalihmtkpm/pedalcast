@@ -206,6 +206,20 @@ function ViewerPage() {
               <Radio className="h-3.5 w-3.5" /> LIVE
             </div>
           )}
+          {row?.is_live && (row.place_name || (row.distance_km ?? 0) > 0) && (
+            <div className="pointer-events-none absolute bottom-3 left-3 right-3 flex flex-wrap items-end justify-between gap-2">
+              {row.place_name && (
+                <div className="inline-flex max-w-[70%] items-center gap-1.5 rounded-lg bg-black/60 px-3 py-1.5 text-sm font-medium text-white backdrop-blur">
+                  <MapPin className="h-4 w-4 text-primary" />
+                  <span className="truncate">{row.place_name}</span>
+                </div>
+              )}
+              <div className="inline-flex items-center gap-1.5 rounded-lg bg-black/60 px-3 py-1.5 text-sm font-semibold text-white backdrop-blur">
+                <Bike className="h-4 w-4 text-primary" />
+                <span className="font-mono">{(row.distance_km ?? 0).toFixed(2)} km</span>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="aspect-video lg:aspect-auto">
@@ -213,17 +227,11 @@ function ViewerPage() {
         </div>
       </div>
 
-      <div className="mt-5 grid gap-5 md:grid-cols-3">
+      <div className="mt-5 grid gap-5 md:grid-cols-4">
         <Stat label="Status" value={row?.is_live ? "On air" : "Off air"} />
+        <Stat label="Distance" value={`${(row?.distance_km ?? 0).toFixed(2)} km`} />
         <Stat label="Speed" value={`${speedKmh} km/h`} />
-        <Stat
-          label="Position"
-          value={
-            row?.lat != null && row.lng != null
-              ? `${row.lat.toFixed(4)}, ${row.lng.toFixed(4)}`
-              : "—"
-          }
-        />
+        <Stat label="Place" value={row?.place_name ?? "—"} />
       </div>
 
       {/* Chat with the rider */}
