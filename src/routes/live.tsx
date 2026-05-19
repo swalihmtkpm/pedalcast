@@ -5,7 +5,7 @@ import { loadSession, saveSession } from "@/lib/usePedalSession";
 import { startViewer } from "@/lib/webrtcSignaling";
 import { joinAsViewer } from "@/lib/pedalRoom";
 import { LiveMap } from "@/components/LiveMap";
-import { Bike, LogOut, Radio, Send } from "lucide-react";
+import { Bike, LogOut, MapPin, Radio, Send, Video } from "lucide-react";
 
 export const Route = createFileRoute("/live")({
   component: ViewerPage,
@@ -18,6 +18,17 @@ type LiveRow = {
   lng: number | null;
   speed: number | null;
   started_at: string | null;
+  distance_km: number | null;
+  place_name: string | null;
+};
+
+type PublicRecording = {
+  id: string;
+  title: string;
+  storage_path: string;
+  duration_seconds: number;
+  distance_km: number;
+  created_at: string;
 };
 
 function ViewerPage() {
