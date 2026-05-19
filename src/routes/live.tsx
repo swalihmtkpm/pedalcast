@@ -102,7 +102,7 @@ function ViewerPage() {
     let mounted = true;
     supabase
       .from("live_session")
-      .select("is_live,lat,lng,speed,started_at")
+      .select("is_live,lat,lng,speed,started_at,distance_km,place_name")
       .eq("id", 1)
       .single()
       .then(({ data }) => {
