@@ -43,6 +43,9 @@ function ViewerPage() {
   const [sentLog, setSentLog] = useState<Array<{ id: string; text: string; ts: number }>>([]);
   const [sending, setSending] = useState(false);
 
+  const [recordings, setRecordings] = useState<PublicRecording[]>([]);
+  const bucketBase = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/recordings/`;
+
   useEffect(() => {
     const room = joinAsViewer();
     roomRef.current = room;
@@ -50,6 +53,26 @@ function ViewerPage() {
       room.stop();
       roomRef.current = null;
     };
+  }, []);
+
+  // Load public recordings
+  useEffect(() => {
+    let alive = true;
+    const load = async () => {
+      const { data } = await supabase
+        .from("recordings")
+        .select("id,title,storage_path,duration_seconds,distance_km,created_at")
+        .eq("is_public", true)
+        .order("created_at", { ascending: false })
+        .limit(30);
+      if (alive && data) setRecordings(data as PublicRecording[]);
+    };
+    void load();
+    const ch = supabase
+      .channel("recordings_changes")
+      .on("postgres_changes", { event: "*", schema: "public", table: "recordings" }, () => void load())
+      .subscribe();
+    return () => { alive = false; supabase.removeChannel(ch); };
   }, []);
 
   async function sendMessage(e: React.FormEvent) {
