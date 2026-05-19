@@ -276,6 +276,35 @@ function ViewerPage() {
           </ul>
         )}
       </section>
+
+      {/* Past rides */}
+      <section className="mt-8 rounded-2xl border border-border bg-card/70 p-5">
+        <h2 className="display flex items-center gap-2 text-xl">
+          <Video className="h-5 w-5 text-primary" /> Past rides
+        </h2>
+        {recordings.length === 0 ? (
+          <p className="mt-2 text-sm text-muted-foreground">No saved rides yet.</p>
+        ) : (
+          <ul className="mt-4 grid gap-4 sm:grid-cols-2">
+            {recordings.map((r) => (
+              <li key={r.id} className="overflow-hidden rounded-xl border border-border bg-background/60">
+                <video
+                  src={`${bucketBase}${r.storage_path}`}
+                  controls
+                  preload="metadata"
+                  className="aspect-video w-full bg-black"
+                />
+                <div className="p-3">
+                  <div className="truncate font-semibold">{r.title}</div>
+                  <div className="mt-0.5 text-xs text-muted-foreground">
+                    {new Date(r.created_at).toLocaleString()} · {r.distance_km.toFixed(2)} km
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </main>
   );
 }
