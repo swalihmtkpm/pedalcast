@@ -38,33 +38,81 @@ export type Database = {
       live_session: {
         Row: {
           accuracy: number | null
+          distance_km: number
           id: number
           is_live: boolean
           lat: number | null
           lng: number | null
+          place_name: string | null
           speed: number | null
           started_at: string | null
           updated_at: string
         }
         Insert: {
           accuracy?: number | null
+          distance_km?: number
           id?: number
           is_live?: boolean
           lat?: number | null
           lng?: number | null
+          place_name?: string | null
           speed?: number | null
           started_at?: string | null
           updated_at?: string
         }
         Update: {
           accuracy?: number | null
+          distance_km?: number
           id?: number
           is_live?: boolean
           lat?: number | null
           lng?: number | null
+          place_name?: string | null
           speed?: number | null
           started_at?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      recordings: {
+        Row: {
+          created_at: string
+          distance_km: number
+          duration_seconds: number
+          ended_at: string | null
+          id: string
+          is_public: boolean
+          mime_type: string
+          size_bytes: number
+          started_at: string | null
+          storage_path: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          distance_km?: number
+          duration_seconds?: number
+          ended_at?: string | null
+          id?: string
+          is_public?: boolean
+          mime_type?: string
+          size_bytes?: number
+          started_at?: string | null
+          storage_path: string
+          title?: string
+        }
+        Update: {
+          created_at?: string
+          distance_km?: number
+          duration_seconds?: number
+          ended_at?: string | null
+          id?: string
+          is_public?: boolean
+          mime_type?: string
+          size_bytes?: number
+          started_at?: string | null
+          storage_path?: string
+          title?: string
         }
         Relationships: []
       }
