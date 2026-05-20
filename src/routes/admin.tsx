@@ -16,7 +16,7 @@ import { loadSession, saveSession, usePedalSession } from "@/lib/usePedalSession
 import { startAdminBroadcast } from "@/lib/webrtcSignaling";
 import { joinAsAdmin, playChime, type ChatMessage } from "@/lib/pedalRoom";
 import { reverseGeocode } from "@/lib/reverseGeocode";
-import { startRecorder, type RecorderHandle } from "@/lib/recorder";
+import { startBurnRecorder, type BurnRecorderHandle } from "@/lib/burnRecorder";
 import { LiveMap } from "@/components/LiveMap";
 import {
   Bike,
@@ -99,11 +99,14 @@ function AdminPage() {
   const lastPointRef = useRef<{ lat: number; lng: number } | null>(null);
   const roomRef = useRef<{ stop: () => void } | null>(null);
   const seenMsgRef = useRef<Set<string>>(new Set());
-  const recorderRef = useRef<RecorderHandle | null>(null);
+  const recorderRef = useRef<BurnRecorderHandle | null>(null);
   const sessionStartRef = useRef<number | null>(null);
   const kmsRef = useRef(0);
+  const placeRef = useRef<string | null>(null);
+  const speedRef = useRef(0);
 
   useEffect(() => { kmsRef.current = kms; }, [kms]);
+  useEffect(() => { placeRef.current = placeName; }, [placeName]);
 
   useEffect(() => {
     const s = loadSession();
@@ -154,7 +157,12 @@ function AdminPage() {
       if (videoRef.current) videoRef.current.srcObject = stream;
 
       broadcastRef.current = startAdminBroadcast(stream);
-      recorderRef.current = startRecorder(stream);
+      recorderRef.current = startBurnRecorder(stream, () => ({
+        placeName: placeRef.current,
+        distanceKm: kmsRef.current,
+        speedKmh: speedRef.current,
+        timestampMs: Date.now(),
+      }));
       sessionStartRef.current = Date.now();
       await setState({ data: { password: session.password, isLive: true } });
       setLive(true);
@@ -169,6 +177,7 @@ function AdminPage() {
           async (pos) => {
             const { latitude, longitude, accuracy, speed } = pos.coords;
             setCoords({ lat: latitude, lng: longitude, acc: accuracy, speed: speed ?? null });
+            speedRef.current = speed != null ? Math.max(0, speed * 3.6) : 0;
             setTrail((t) => {
               const next = [...t, [latitude, longitude] as [number, number]];
               return next.length > 2000 ? next.slice(-2000) : next;
@@ -285,6 +294,7 @@ function AdminPage() {
       streamRef.current = composite;
       if (videoRef.current) videoRef.current.srcObject = composite;
       broadcastRef.current?.replaceVideoTrack(composite);
+      recorderRef.current?.updateStream(composite);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to switch camera");
     }
